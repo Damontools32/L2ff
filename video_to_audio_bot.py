@@ -1,31 +1,22 @@
 import os
 import tempfile
 import subprocess
-from pydub import AudioSegment
 from telegram import InputFile
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+AUDIO_FILES_DIR = '/var/www/audio-files'
+SERVER_DOMAIN_OR_IP = 'your_server_domain_or_IP'
 
 def convert_video_to_audio(video_path, audio_path, audio_quality=3):
     command = f'ffmpeg -i {video_path} -vn -c:a libopus -b:a {audio_quality}k {audio_path}'
     subprocess.call(command, shell=True)
 
-def split_audio_into_chunks(audio_path, max_size_bytes=49000000):  # حداکثر حجم هر قطعه 49 مگابایت
-    audio = AudioSegment.from_file(audio_path, format="ogg")
-    duration_ms = len(audio)
-    num_chunks = (os.path.getsize(audio_path) + max_size_bytes - 1) // max_size_bytes
-    chunk_duration_ms = duration_ms // num_chunks
-
-    chunks = []
-    for i in range(num_chunks):
-        start_time_ms = i * chunk_duration_ms
-        end_time_ms = start_time_ms + chunk_duration_ms
-
-        chunk = audio[start_time_ms:end_time_ms]
-        chunks.append(chunk)
-
-    return chunks
+def save_audio_file(file_path):
+    file_name = os.path.basename(file_path)
+    destination_path = os.path.join(AUDIO_FILES_DIR, file_name)
+    os.rename(file_path, destination_path)
+    return f'http://{SERVER_DOMAIN_OR_IP}/{file_name}'
 
 def start(update, context):
     update.message.reply_text('لطفا ویدیویی که می‌خواهید به صوت تبدیل شود را ارسال کنید.')
@@ -44,18 +35,9 @@ def handle_video(update, context):
         audio_path = audio_temp.name
         convert_video_to_audio(video_path, audio_path)
 
-    # تقسیم فایل صوتی به قطعات کوچک‌تر
-    chunks = split_audio_into_chunks(audio_path)
-
-    # ارسال قطعات صوتی به کاربر
-    for i, chunk in enumerate(chunks):
-        with tempfile.NamedTemporaryFile(prefix=f'chunk_{i}_', suffix='.ogg', delete=False) as chunk_temp:
-            chunk.export(chunk_temp.name, format="ogg")
-            with open(chunk_temp.name, 'rb') as chunk_file:
-                context.bot.send_audio(chat_id=update.effective_chat.id, audio=InputFile(chunk_file))
-
-            # پاک کردن فایل موقت
-            os.remove(chunk_temp.name)
+    # ذخیره فایل صوتی در سرور و ارسال لینک دانلود به کاربر
+    download_url = save_audio_file(audio_path)
+    update.message.reply_text(f'فایل صوتی آماده است. لینکدانلود:\n{download_url}')
 
     # پاک کردن فایل‌های موقت
     os.remove(video_path)
@@ -72,5 +54,5 @@ def main():
     updater.start_polling()
     updater.idle()
 
-if __name__ == '__main__':
+if __name__ =='__main__':
     main()
