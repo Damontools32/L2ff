@@ -8,7 +8,7 @@ TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
 API_ID = 1234567  # جایگزین کنید با API ID دریافتی
 API_HASH = "your_api_hash"  # جایگزین کنید با API Hash دریافتی
 
-def convert_video_to_audio(video_path, audio_path, audio_quality=3):
+def convert_video_to_audio(video_path, audio_path, audio_quality=16):
     command = f'ffmpeg -y -i {video_path} -vn -c:a libopus -b:a {audio_quality}k {audio_path}'
     subprocess.call(command, shell=True)
 
