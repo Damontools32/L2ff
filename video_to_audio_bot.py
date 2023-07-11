@@ -1,10 +1,13 @@
 import os
 import tempfile
 import subprocess
-from telegram import InputFile
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telethon import TelegramClient
+from telethon.sync import events
 
 TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+API_ID = 1234567  # جایگزین کنید با API ID دریافتی
+API_HASH = "your_api_hash"  # جایگزین کنید با API Hash دریافتی
+
 AUDIO_FILES_DIR = '/var/www/audio-files'
 SERVER_DOMAIN_OR_IP = 'your_server_domain_or_IP'
 
@@ -18,41 +21,34 @@ def save_audio_file(file_path):
     os.rename(file_path, destination_path)
     return f'http://{SERVER_DOMAIN_OR_IP}/{file_name}'
 
-def start(update, context):
-    update.message.reply_text('لطفا ویدیویی که می‌خواهید به صوت تبدیل شود را ارسال کنید.')
+client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=TOKEN)
 
-def handle_video(update, context):
-    video = update.message.video
-    video_file = context.bot.getFile(video.file_id)
+@client.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    await event.respond('لطفا ویدیویی که می‌خواهید به صوت تبدیل شود را ارسال کنید.')
 
-    # ذخیره ویدیوی دریافتی در یک فایل موقت
-    with tempfile.NamedTemporaryFile(prefix='video_', suffix='.mp4', delete=False) as video_temp:
-        video_file.download(video_temp.name)
-        video_path = video_temp.name
+@client.on(events.NewMessage)
+async def handle_video(event):
+    if event.message.video:
+        video = event.message.video
+        video_path = await client.download_media(video)
 
-    # تبدیل ویدیو به فایل صوتی و ذخیره آن در یک فایل موقت
-    with tempfile.NamedTemporaryFile(prefix='audio_', suffix='.ogg', delete=False) as audio_temp:
-        audio_path = audio_temp.name
-        convert_video_to_audio(video_path, audio_path)
+        # تبدیل ویدیو به فایل صوتی و ذخیره آن در یک فایل موقت
+        with tempfile.NamedTemporaryFile(prefix='audio_', suffix='.ogg', delete=False) as audio_temp:
+            audio_path = audio_temp.name
+            convert_video_to_audio(video_path, audio_path)
 
-    # ذخیره فایل صوتی در سرور و ارسال لینک دانلود به کاربر
-    download_url = save_audio_file(audio_path)
-    update.message.reply_text(f'فایل صوتی آماده است. لینکدانلود:\n{download_url}')
+        # ذخیره فایل صوتی در سرور و ارسال لینک دانلود به کاربر
+        download_url = save_audio_file(audio_path)
+        await event.respond(f'فایل صوتی آماده است. لینک دانلود:\n{download_url}')
 
-    # پاک کردن فایل‌های موقت
-    os.remove(video_path)
-    os.remove(audio_path)
+        # پاک کردن فایل‌های موقت
+        os.remove(video_path)
+        os.remove(audio_path)
 
 def main():
-    updater = Updater(TOKEN, use_context=True)
+    print("Bot started...")
+    client.run_until_disconnected()
 
-    dp = updater.dispatcher
-
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.video, handle_video))
-
-    updater.start_polling()
-    updater.idle()
-
-if __name__ =='__main__':
+if __name__ == '__main__':
     main()
