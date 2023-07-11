@@ -9,7 +9,7 @@ API_ID = 1234567  # جایگزین کنید با API ID دریافتی
 API_HASH = "your_api_hash"  # جایگزین کنید با API Hash دریافتی
 
 def convert_video_to_audio(video_path, audio_path, audio_quality=3):
-    command = f'ffmpeg -i {video_path} -vn -c:a libopus -b:a {audio_quality}k {audio_path}'
+    command = f'ffmpeg -y -i {video_path} -vn -c:a libopus -b:a {audio_quality}k {audio_path}'
     subprocess.call(command, shell=True)
 
 client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=TOKEN)
