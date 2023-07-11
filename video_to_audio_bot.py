@@ -1,6 +1,17 @@
 import os
 import tempfile
+import subprocess
 from telegram import InputFile
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
+TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+
+def convert_video_to_audio(video_path, audio_path, audio_quality=3):
+    command = f'ffmpeg -i {video_path} -vn -c:a libopus -b:a {audio_quality}k {audio_path}'
+    subprocess.call(command, shell=True)
+
+def start(update, context):
+    update.message.reply_text('لطفا ویدیویی که می‌خواهید به صوت تبدیل شود را ارسال کنید.')
 
 def handle_video(update, context):
     video = update.message.video
@@ -23,3 +34,17 @@ def handle_video(update, context):
     # پاک کردن فایل‌های موقت
     os.remove(video_path)
     os.remove(audio_path)
+
+def main():
+    updater = Updater(TOKEN, use_context=True)
+
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(MessageHandler(Filters.video, handle_video))
+
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
