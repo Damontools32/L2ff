@@ -3,9 +3,9 @@ import tempfile
 import subprocess
 from telethon import TelegramClient, events, Button
 
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')  # set this in your environment
-API_ID = os.getenv('API_ID')  # set this in your environment
-API_HASH = os.getenv('API_HASH')  # set this in your environment
+TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
+API_ID = 1234567
+API_HASH = "your_api_hash"
 
 def convert_video_to_audio(video_path, audio_path, audio_quality=16):
     command = f'ffmpeg -y -i {video_path} -vn -c:a libopus -b:a {audio_quality}k {audio_path}'
@@ -15,7 +15,7 @@ def reduce_video_size(video_path, output_path, bitrate="500k"):
     command = f'ffmpeg -y -i {video_path} -vf "scale=-1:720" -c:v libx264 -preset veryslow -crf 24 -b:v {bitrate} {output_path}'
     subprocess.call(command, shell=True)
 
-client = TelegramClient('bot', int(API_ID), API_HASH).start(bot_token=TOKEN)
+client = TelegramClient('bot', API_ID, API_HASH).start(bot_token=TOKEN)
 
 @client.on(events.NewMessage(pattern='/start'))
 async def start(event):
@@ -53,4 +53,4 @@ def main():
     client.run_until_disconnected()
 
 if __name__ == '__main__':
-    main()￼Enter
+    main()
